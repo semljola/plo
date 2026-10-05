@@ -1,6 +1,7 @@
 import { dashboard } from "@/lib/metrics";
 import { list } from "@/lib/pending-operations";
 import { NewIdeaForm } from "./new-idea-form";
+import { PendingOpRow } from "./pending-op-row";
 import { getIdeas } from "./actions";
 
 /**
@@ -52,13 +53,14 @@ export default async function Dashboard() {
       </div>
 
       <h2 style={{ fontSize: 20, marginTop: 36 }}>Pending agent operations ({pending.length})</h2>
-      <ul>
+      <ul style={{ listStyle: "none", paddingLeft: 0 }}>
         {pending.map((op) => (
-          <li key={op.id} style={{ marginBottom: 6 }}>
-            <code>{op.kind}</code> · risk <strong>{op.risk_tier}</strong> · {new Date(op.created_at).toLocaleString()}
-          </li>
+          <PendingOpRow
+            key={op.id}
+            op={{ id: op.id, kind: op.kind, risk_tier: op.risk_tier, created_at: op.created_at }}
+          />
         ))}
-        {pending.length === 0 && <li style={{ color: "#9ca3af", listStyle: "none" }}>Nothing awaiting approval.</li>}
+        {pending.length === 0 && <li style={{ color: "#9ca3af" }}>Nothing awaiting approval.</li>}
       </ul>
 
       <h2 style={{ fontSize: 20, marginTop: 36 }}>Ideas ({ideas.length})</h2>
