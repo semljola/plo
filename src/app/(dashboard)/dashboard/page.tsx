@@ -1,5 +1,7 @@
 import { dashboard } from "@/lib/metrics";
 import { list } from "@/lib/pending-operations";
+import { NewIdeaForm } from "./new-idea-form";
+import { getIdeas } from "./actions";
 
 /**
  * Minimal metrics dashboard. Server component — reads directly through the
@@ -24,9 +26,10 @@ export default async function Dashboard() {
     );
   }
 
-  const [metrics, pending] = await Promise.all([
+  const [metrics, pending, ideas] = await Promise.all([
     dashboard(userId, workspaceId),
     list(userId, workspaceId, "pending"),
+    getIdeas(),
   ]);
 
   return (
@@ -56,6 +59,19 @@ export default async function Dashboard() {
           </li>
         ))}
         {pending.length === 0 && <li style={{ color: "#9ca3af", listStyle: "none" }}>Nothing awaiting approval.</li>}
+      </ul>
+
+      <h2 style={{ fontSize: 20, marginTop: 36 }}>Ideas ({ideas.length})</h2>
+      <NewIdeaForm />
+      <ul style={{ paddingLeft: 18 }}>
+        {ideas.map((i) => (
+          <li key={i.id} style={{ marginBottom: 8 }}>
+            <strong>{i.title}</strong>{" "}
+            <span style={{ fontSize: 12, color: "#6b7280" }}>[{i.status}]</span>
+            {i.body ? <div style={{ fontSize: 13, color: "#9ca3af" }}>{i.body}</div> : null}
+          </li>
+        ))}
+        {ideas.length === 0 && <li style={{ color: "#9ca3af", listStyle: "none" }}>No ideas yet — file the first one above.</li>}
       </ul>
     </main>
   );
