@@ -1,0 +1,22 @@
+{
+  "name": "@plo/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PLO MCP server — exposes the product loop as agent tools (propose/approve staged ops).",
+  "bin": { "plo-mcp": "dist/server.js" },
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "node --experimental-strip-types src/server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.2"
+  }
+}

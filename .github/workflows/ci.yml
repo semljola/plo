@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  loop-verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: plo
+          POSTGRES_DB: plo
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U plo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "55432"
+      PGDATABASE: plo
+      DATABASE_URL: postgresql://plo@127.0.0.1:55432/plo
+      RUN_DB_TESTS: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations
+        run: node scripts/db-reset.mjs --fresh
+
+      # loop-verify is the gate: core isolation, single write path, immutability
+      # trigger, typecheck, and (with RUN_DB_TESTS=1) the full test suite.
+      - name: loop-verify (gate for agent PRs) + full test suite
+        run: npm run loop-verify
+        env:
+          RUN_DB_TESTS: "1"
+
+      - name: Build
+        run: npm run build

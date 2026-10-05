@@ -1,0 +1,6 @@
+{
+  "regions": ["arn1"],
+  "crons": [
+    { "path": "/api/webhooks/loop-metric-pull", "schedule": "0 * * * *" }
+  ]
+}
