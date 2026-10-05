@@ -25,6 +25,12 @@ try {
   const spec = (await c.query("insert into specs (workspace_id, idea_id, title, status) values ($1,$2,$3,'approved') returning id", [ws, idea, "Onboarding checklist"])).rows[0].id;
   await c.query("insert into spec_versions (workspace_id, spec_id, version, body, approved_at) values ($1,$2,1,$3, now())", [ws, spec, { acceptance: ["checklist renders", "completion tracked"] }]);
 
+  // A second spec left as a DRAFT with an unapproved version — this is the one
+  // the pending spec.approve op targets, so clicking Approve on the dashboard
+  // actually commits (rather than hitting "already approved").
+  const draftSpec = (await c.query("insert into specs (workspace_id, idea_id, title, status) values ($1,$2,$3,'draft') returning id", [ws, idea, "Onboarding checklist v2"])).rows[0].id;
+  await c.query("insert into spec_versions (workspace_id, spec_id, version, body) values ($1,$2,1,$3)", [ws, draftSpec, { acceptance: ["tooltip tour", "skip option"] }]);
+
   for (const [key, unit, vals] of [
     ["activation_rate", "ratio", [0.31, 0.37, 0.42]],
     ["time_to_value_min", "minutes", [48, 36, 25]],
@@ -38,10 +44,11 @@ try {
     }
   }
 
-  // one pending high-risk agent op awaiting approval
+  // one pending high-risk agent op awaiting approval — targets the DRAFT spec
+  // so it is genuinely approvable from the dashboard.
   await c.query(
     "insert into pending_operations (workspace_id, kind, risk_tier, payload, status, proposed_by) values ($1,'spec.approve','high',$2,'pending',$3)",
-    [ws, { workspace_id: ws, spec_id: spec, version: 1 }, randomUUID()]
+    [ws, { workspace_id: ws, spec_id: draftSpec, version: 1 }, randomUUID()]
   );
 
   console.log("✓ seeded demo workspace");
