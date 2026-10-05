@@ -1,0 +1,19 @@
+# PLO code owners
+#
+# These owners are requested for review on matching paths. Combined with branch
+# protection (require review + loop-verify check), this keeps the loop's
+# invariants under human sign-off.
+
+# Default owner for everything.
+*                           @semljola
+
+# The single write path, approval plumbing, and schema are the crown jewels —
+# changes here always want a careful look.
+/src/lib/loop/              @semljola
+/src/lib/pending-operations/ @semljola
+/src/lib/db/                @semljola
+/supabase/migrations/       @semljola
+
+# The agent-PR gate itself.
+/scripts/checks/            @semljola
+/.github/                   @semljola
