@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createIdea, listIdeas } from "@/lib/ideas";
 import { approve, reject } from "@/lib/pending-operations";
+import { draftSpec, listSpecs } from "@/lib/specs";
 
 /**
  * Server action for the dashboard "New idea" form. Runs server-side under the
@@ -94,4 +95,51 @@ export async function rejectOperation(_prev: DecisionResult, formData: FormData)
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Reject failed." };
   }
+}
+
+export interface DraftSpecResult {
+  ok: boolean;
+  error?: string;
+  id?: string;
+}
+
+/**
+ * Quick-draft a spec from the dashboard. Title is required; acceptance criteria
+ * are entered one per line and stored as an executable body ({ acceptance: [] }).
+ * A spec always starts as a DRAFT (version 1, unapproved) through the single
+ * write path — approval happens later via the pending-ops gate.
+ */
+export async function draftSpecAction(_prev: DraftSpecResult, formData: FormData): Promise<DraftSpecResult> {
+  const id = demoIdentity();
+  if (!id) return { ok: false, error: "Demo identity not configured." };
+
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) return { ok: false, error: "Title is required." };
+  if (title.length > 200) return { ok: false, error: "Title must be 200 characters or fewer." };
+
+  const ideaId = String(formData.get("idea_id") ?? "").trim();
+  const acceptance = String(formData.get("acceptance") ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  try {
+    const created = await draftSpec(id.userId, {
+      workspace_id: id.workspaceId,
+      title,
+      idea_id: ideaId || undefined,
+      body: acceptance.length ? { acceptance } : {},
+    });
+    revalidatePath("/dashboard");
+    return { ok: true, id: created.id };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to draft spec." };
+  }
+}
+
+/** Read specs for the demo workspace (server-side). */
+export async function getSpecs() {
+  const id = demoIdentity();
+  if (!id) return [];
+  return listSpecs(id.userId, id.workspaceId);
 }

@@ -1,8 +1,9 @@
 import { dashboard } from "@/lib/metrics";
 import { list } from "@/lib/pending-operations";
 import { NewIdeaForm } from "./new-idea-form";
+import { DraftSpecForm } from "./draft-spec-form";
 import { PendingOpRow } from "./pending-op-row";
-import { getIdeas } from "./actions";
+import { getIdeas, getSpecs } from "./actions";
 
 /**
  * Minimal metrics dashboard. Server component — reads directly through the
@@ -27,10 +28,11 @@ export default async function Dashboard() {
     );
   }
 
-  const [metrics, pending, ideas] = await Promise.all([
+  const [metrics, pending, ideas, specs] = await Promise.all([
     dashboard(userId, workspaceId),
     list(userId, workspaceId, "pending"),
     getIdeas(),
+    getSpecs(),
   ]);
 
   return (
@@ -61,6 +63,25 @@ export default async function Dashboard() {
           />
         ))}
         {pending.length === 0 && <li style={{ color: "#9ca3af" }}>Nothing awaiting approval.</li>}
+      </ul>
+
+      <h2 style={{ fontSize: 20, marginTop: 36 }}>Specs ({specs.length})</h2>
+      <DraftSpecForm ideas={ideas.map((i) => ({ id: i.id, title: i.title }))} />
+      <ul style={{ paddingLeft: 18 }}>
+        {specs.map((s) => (
+          <li key={s.id} style={{ marginBottom: 8 }}>
+            <strong>{s.title}</strong>{" "}
+            <span
+              style={{
+                fontSize: 12,
+                color: s.status === "approved" ? "#34d399" : "#fbbf24",
+              }}
+            >
+              [{s.status}]
+            </span>
+          </li>
+        ))}
+        {specs.length === 0 && <li style={{ color: "#9ca3af", listStyle: "none" }}>No specs yet — draft the first one above.</li>}
       </ul>
 
       <h2 style={{ fontSize: 20, marginTop: 36 }}>Ideas ({ideas.length})</h2>
