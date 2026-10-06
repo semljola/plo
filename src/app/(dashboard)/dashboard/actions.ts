@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createIdea, listIdeas } from "@/lib/ideas";
 import { approve, reject } from "@/lib/pending-operations";
 import { draftSpec, listSpecs } from "@/lib/specs";
+import { defineMetric, recordSnapshot, listDefinitions } from "@/lib/metrics";
+import { listExperiments } from "@/lib/experiments";
 
 /**
  * Server action for the dashboard "New idea" form. Runs server-side under the
@@ -142,4 +144,76 @@ export async function getSpecs() {
   const id = demoIdentity();
   if (!id) return [];
   return listSpecs(id.userId, id.workspaceId);
+}
+
+export interface MetricResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Define a metric from the dashboard. Key must be snake/dot case (validated by
+ * the engine's schema). Idempotent — redefining updates description/unit.
+ */
+export async function defineMetricAction(_prev: MetricResult, formData: FormData): Promise<MetricResult> {
+  const id = demoIdentity();
+  if (!id) return { ok: false, error: "Demo identity not configured." };
+  const key = String(formData.get("key") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const unit = String(formData.get("unit") ?? "").trim();
+  if (!key) return { ok: false, error: "Key is required." };
+  try {
+    await defineMetric(id.userId, {
+      workspace_id: id.workspaceId,
+      key,
+      description: description || undefined,
+      unit: unit || undefined,
+    });
+    revalidatePath("/dashboard");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Define failed." };
+  }
+}
+
+/**
+ * Record a snapshot for an EXISTING metric (never invent metrics — AGENTS.md
+ * rule 3; the form only offers already-defined keys). Optionally link to an
+ * experiment for provenance.
+ */
+export async function recordSnapshotAction(_prev: MetricResult, formData: FormData): Promise<MetricResult> {
+  const id = demoIdentity();
+  if (!id) return { ok: false, error: "Demo identity not configured." };
+  const metricKey = String(formData.get("metric_key") ?? "").trim();
+  const rawValue = String(formData.get("value") ?? "").trim();
+  const experimentId = String(formData.get("experiment_id") ?? "").trim();
+  if (!metricKey) return { ok: false, error: "Pick a metric." };
+  const value = Number(rawValue);
+  if (!rawValue || Number.isNaN(value)) return { ok: false, error: "Value must be a number." };
+  try {
+    await recordSnapshot(id.userId, {
+      workspace_id: id.workspaceId,
+      metric_key: metricKey,
+      value,
+      experiment_id: experimentId || undefined,
+    });
+    revalidatePath("/dashboard");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Snapshot failed." };
+  }
+}
+
+/** Read metric definitions for the demo workspace (server-side). */
+export async function getMetricDefinitions() {
+  const id = demoIdentity();
+  if (!id) return [];
+  return listDefinitions(id.userId, id.workspaceId);
+}
+
+/** Read experiments for the demo workspace (server-side). */
+export async function getExperiments() {
+  const id = demoIdentity();
+  if (!id) return [];
+  return listExperiments(id.userId, id.workspaceId);
 }
