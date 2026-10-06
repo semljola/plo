@@ -1,8 +1,29 @@
 # Product Loop Optimization (PLO)
 
-One system of record for the product loop, shared by humans and agents:
+**An agentic SDLC that closes the product loop.** One system of record, shared
+by humans and agents, for the whole arc:
 
 **idea → spec → build → measure → learn → decide**
+
+Agents propose, humans approve by risk tier, committed state is immutable, and
+every write goes through one engine. The near-term engine is an **agentic
+software-development lifecycle** (idea → spec → build, with agent-drafted
+proposals, human approval, executable specs tied to git SHAs, and a CI gate).
+The thesis it is built to grow into is **product-loop optimization**: closing
+measure → learn → decide back onto prioritized ideas with evidence.
+
+### What is real today vs the thesis
+
+- **Real and tested now:** the governed human+agent state machine: single write
+  path, staged operations with risk-tiered human approval, immutable approved
+  specs (DB-trigger enforced), RLS tenancy, event-bus extensions, an MCP surface,
+  and a `loop-verify` CI gate. Dashboard controls for filing ideas, drafting
+  specs, approving/rejecting agent operations, and recording metrics/snapshots.
+- **Scaffolded, not yet closed:** the measure → learn → decide feedback arc. The
+  data model (metrics, experiments, learnings, decisions, experiment↔snapshot
+  evidence) exists, but learnings do not yet feed back into prioritized ideas.
+  Closing that loop is the roadmap, not a current claim. See
+  [`docs/prd-agent-build-execution.md`](./docs/prd-agent-build-execution.md).
 
 This project uses the same patterns that [Accounted](https://github.com/erp-mafia/accounted)
 uses for their single write path, staged agent ops, immutable committed state,
