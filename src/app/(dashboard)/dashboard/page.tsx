@@ -2,8 +2,9 @@ import { dashboard } from "@/lib/metrics";
 import { list } from "@/lib/pending-operations";
 import { NewIdeaForm } from "./new-idea-form";
 import { DraftSpecForm } from "./draft-spec-form";
+import { MetricsPanel } from "./metrics-panel";
 import { PendingOpRow } from "./pending-op-row";
-import { getIdeas, getSpecs } from "./actions";
+import { getIdeas, getSpecs, getMetricDefinitions, getExperiments } from "./actions";
 
 /**
  * Minimal metrics dashboard. Server component — reads directly through the
@@ -28,11 +29,13 @@ export default async function Dashboard() {
     );
   }
 
-  const [metrics, pending, ideas, specs] = await Promise.all([
+  const [metrics, pending, ideas, specs, metricDefs, experiments] = await Promise.all([
     dashboard(userId, workspaceId),
     list(userId, workspaceId, "pending"),
     getIdeas(),
     getSpecs(),
+    getMetricDefinitions(),
+    getExperiments(),
   ]);
 
   return (
@@ -53,6 +56,11 @@ export default async function Dashboard() {
           </div>
         ))}
       </div>
+
+      <MetricsPanel
+        metrics={metricDefs.map((m) => ({ key: m.key as string, unit: (m.unit as string | null) ?? null }))}
+        experiments={experiments.map((e) => ({ id: e.id as string, name: e.name as string }))}
+      />
 
       <h2 style={{ fontSize: 20, marginTop: 36 }}>Pending agent operations ({pending.length})</h2>
       <ul style={{ listStyle: "none", paddingLeft: 0 }}>
