@@ -47,3 +47,10 @@ experiment → learning → decision.
 - `…130000_plo_rls_and_approvals.sql` — `plo_app` role, request-context helpers,
   membership policies, experiment↔metric links, approval columns, hardened
   immutability function.
+
+## Roadmap docs
+
+- [`prd-agent-build-execution.md`](./prd-agent-build-execution.md) — PRD for
+  turning an approved operation into a durable trigger an agent builds on
+  (transactional outbox + worker + agent runner + report-back). Covers
+  current-state vs proposed architecture and next steps.
