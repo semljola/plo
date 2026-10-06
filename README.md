@@ -4,9 +4,9 @@ One system of record for the product loop, shared by humans and agents:
 
 **idea → spec → build → measure → learn → decide**
 
-Not a fork of [Accounted](https://github.com/erp-mafia/accounted). Same *patterns*
-(single write path, staged agent ops, immutable committed state, RLS tenancy,
-event-bus extensions, MCP surface), clean-room IP.
+This project uses the same patterns that [Accounted](https://github.com/erp-mafia/accounted)
+uses for their single write path, staged agent ops, immutable committed state,
+RLS tenancy, event-bus extensions, MCP surface etc.
 
 ## Stack
 
