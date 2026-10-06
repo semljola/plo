@@ -8,6 +8,11 @@ This project uses the same patterns that [Accounted](https://github.com/erp-mafi
 uses for their single write path, staged agent ops, immutable committed state,
 RLS tenancy, event-bus extensions, MCP surface etc.
 
+PLO is a **clean-room reimplementation of those architectural patterns**. It is
+**not a fork** and contains **no code copied from Accounted**. Accounted is
+licensed AGPL-3.0; PLO shares the design ideas only, with independently written
+code. See [`DECISIONS.md`](./DECISIONS.md).
+
 ## Stack
 
 TypeScript · Next.js App Router · Postgres + RLS (Supabase-compatible, EU
