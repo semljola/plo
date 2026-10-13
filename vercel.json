@@ -1,6 +1,7 @@
 {
   "regions": ["arn1"],
   "crons": [
-    { "path": "/api/webhooks/loop-metric-pull", "schedule": "0 * * * *" }
+    { "path": "/api/webhooks/loop-metric-pull", "schedule": "0 * * * *" },
+    { "path": "/api/webhooks/loop-build-run", "schedule": "*/5 * * * *" }
   ]
 }
