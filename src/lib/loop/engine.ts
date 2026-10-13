@@ -39,6 +39,19 @@ function parse<K extends PendingOpKind>(kind: K, payload: unknown): AnyPayload[K
   return res.data as AnyPayload[K];
 }
 
+/**
+ * A spec version is "buildable" when it carries executable acceptance criteria
+ * and is not explicitly opted out. Default: build when body.acceptance is a
+ * non-empty array and body.build !== false. This is the single place that
+ * decides whether approving a spec enqueues a build job.
+ */
+export function isBuildable(body: unknown): boolean {
+  if (!body || typeof body !== "object") return false;
+  const b = body as Record<string, unknown>;
+  if (b.build === false) return false;
+  return Array.isArray(b.acceptance) && b.acceptance.length > 0;
+}
+
 async function audit(
   tx: Executor,
   ctx: CommitContext,
@@ -136,6 +149,23 @@ export async function commitOp(
         throw new ImmutableError("spec version already approved");
       }
       await tx.query("update specs set status='approved' where id=$1 and workspace_id=$2", [p.spec_id, p.workspace_id]);
+
+      // Transactional outbox: if the approved version is buildable, enqueue a
+      // build job IN THIS TRANSACTION so it commits atomically with the
+      // approval. The worker (out of band) claims it and runs the agent.
+      const approvedBody = await tx.query<{ body: Record<string, unknown> }>(
+        "select body from spec_versions where spec_id=$1 and version=$2 and workspace_id=$3",
+        [p.spec_id, p.version, p.workspace_id]
+      );
+      if (approvedBody.rows[0] && isBuildable(approvedBody.rows[0].body)) {
+        await tx.query(
+          `insert into build_jobs (workspace_id, spec_id, spec_version, status)
+           values ($1,$2,$3,'queued')
+           on conflict (spec_id, spec_version) do nothing`,
+          [p.workspace_id, p.spec_id, p.version]
+        );
+      }
+
       await audit(tx, ctx, p.workspace_id, "spec.approve", { spec_id: p.spec_id, version: p.version });
       await emit({ type: "spec.approved", spec_id: p.spec_id, version: p.version, workspace_id: p.workspace_id, at, actor_id: ctx.actorId });
       return { kind, id: p.spec_id, version: p.version };
