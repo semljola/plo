@@ -258,17 +258,31 @@ the same gate it opened.
 
 ## 10. Rollout plan
 
-1. **Migration** — `build_jobs` table + RLS + grants.
-2. **Engine** — in-tx outbox insert in `spec.approve` (+ `isBuildable`).
-3. **Worker** — claim endpoint/process with `SKIP LOCKED`; `AgentRunner` stub.
-4. **Report-back** — worker stages `build.record` on success.
+1. **Migration** — `build_jobs` table + RLS + grants. ✅ shipped (PR #13)
+2. **Engine** — in-tx outbox insert in `spec.approve` (+ `isBuildable`). ✅ (PR #13)
+3. **Worker** — claim endpoint/process with `SKIP LOCKED`; `AgentRunner` stub. ✅ (PR #14)
+4. **Report-back** — worker stages `build.record` on success. ✅ (PR #14)
 5. **Tests** (`tests/pg/`) — enqueue-on-approve, idempotency, concurrent claim,
-   report-back path.
-6. **UI** (optional) — a "Builds" section showing job status, polling.
-7. **Live runner** — swap the stub for Claude Code / a subagent behind the same
-   interface.
+   report-back path. ✅ (PR #13/#14)
+6. **UI** — a "Builds" section + "Run build worker" button. ✅ (PR #15)
+7. **Live runner** — `CommandAgentRunner`: real git repo, configurable agent
+   command (`PLO_AGENT_CMD`), real commit + SHA. Default stays the stub; go live
+   by setting one env var. ✅ (this PR)
 
 Each step ships as its own PR through the `loop-verify` CI gate.
+
+### Going live (the one env var)
+
+```
+PLO_AGENT_CMD=claude -p "$PLO_BRIEF" --allowedTools Read,Edit,Write --max-turns 20
+PLO_AGENT_REPO=/absolute/path/to/target/repo
+```
+
+With `PLO_AGENT_CMD` set, the worker's `CommandAgentRunner` writes the approved
+spec body as a brief (available as `$PLO_BRIEF` / `$PLO_BRIEF_FILE`), runs the
+command in the repo, commits the result, and reports the **real git SHA** back
+through `build.record` for human approval. Unset, it uses the deterministic
+`StubAgentRunner` (demos/tests). No code change to switch.
 
 ---
 

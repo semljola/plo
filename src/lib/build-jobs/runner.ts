@@ -8,6 +8,7 @@
  * Swap StubAgentRunner for a Claude Code / subagent implementation later; the
  * worker does not change.
  */
+import { CommandAgentRunner } from "./command-runner";
 
 export interface AgentRunInput {
   workspaceId: string;
@@ -62,5 +63,27 @@ function syntheticSha(seed: string): string {
   return out.slice(0, 40);
 }
 
-/** The runner the worker uses. Swap here to go live. */
-export const defaultAgentRunner: AgentRunner = new StubAgentRunner();
+/**
+ * The runner the worker uses. Resolved from env:
+ *   - PLO_AGENT_CMD set  -> CommandAgentRunner (LIVE: real git repo + real agent
+ *     command). This is how you go live — no code change, one env var.
+ *   - otherwise          -> StubAgentRunner (deterministic, for demos/tests).
+ *
+ * Lazily constructed so tests and the stub path never import the command runner
+ * machinery unless a live command is actually configured.
+ */
+export function resolveAgentRunner(): AgentRunner {
+  const cmd = process.env.PLO_AGENT_CMD;
+  if (cmd && cmd.trim()) {
+    return new CommandAgentRunner({
+      agentCmd: cmd,
+      repoDir: process.env.PLO_AGENT_REPO || undefined,
+      timeoutMs: process.env.PLO_AGENT_TIMEOUT_MS ? Number(process.env.PLO_AGENT_TIMEOUT_MS) : undefined,
+    });
+  }
+  return new StubAgentRunner();
+}
+
+/** The default runner, resolved once from env at import time. */
+export const defaultAgentRunner: AgentRunner = resolveAgentRunner();
+
