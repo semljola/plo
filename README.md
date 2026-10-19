@@ -97,10 +97,37 @@ npm run build && npm run start
   (`plo_propose_operation`, `plo_approve_operation`, `plo_list_pending`,
   `plo_list_specs`, `plo_list_metrics`). Credential-bound to one workspace key.
 
+## Going live with a real agent
+
+Approving a buildable spec (one with `body.acceptance`) enqueues a `build_jobs`
+row in the same transaction. The build worker
+(`/api/webhooks/loop-build-run`, or the "Run build worker" button on the
+dashboard) claims it and runs an **agent runner**. Out of the box the runner is
+a deterministic stub (great for demos and tests). To drive a real coding agent,
+set one env var:
+
+```bash
+# cwd for the command is PLO_AGENT_REPO; the approved spec body is the brief.
+PLO_AGENT_CMD=claude -p "$PLO_BRIEF" --allowedTools Read,Edit,Write --max-turns 20
+PLO_AGENT_REPO=/absolute/path/to/your/target/repo
+# optional: PLO_AGENT_TIMEOUT_MS=180000
+```
+
+With `PLO_AGENT_CMD` set, the worker's `CommandAgentRunner` writes the approved
+spec body as a brief, runs the command in the repo, commits the result, and
+returns the **real git SHA**. These env vars are available to the command:
+`PLO_BRIEF` (JSON), `PLO_BRIEF_FILE` (path), `PLO_SPEC_ID`, `PLO_SPEC_VERSION`,
+`PLO_WORKSPACE_ID`.
+
+The agent never merges its own work: on success it stages a `build.record`
+pending operation, which a human approves through the same gate. Unset
+`PLO_AGENT_CMD` to fall back to the stub. No code change to switch. See
+[`docs/prd-agent-build-execution.md`](./docs/prd-agent-build-execution.md).
+
 ## Tests
 
-16 DB-backed integration tests (`tests/pg/*.test.ts`) run against real Postgres
-and prove the four success criteria:
+33 DB-backed integration tests (`tests/pg/*.test.ts`) run against real Postgres
+and prove the loop invariants, including the four core success criteria:
 
 1. A human can approve a staged agent-drafted spec.
 2. An approved spec body cannot be mutated in place.
