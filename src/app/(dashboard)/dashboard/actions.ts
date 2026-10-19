@@ -6,6 +6,8 @@ import { approve, reject } from "@/lib/pending-operations";
 import { draftSpec, listSpecs } from "@/lib/specs";
 import { defineMetric, recordSnapshot, listDefinitions } from "@/lib/metrics";
 import { listExperiments } from "@/lib/experiments";
+import { listBuildJobs } from "@/lib/build-jobs";
+import { processBuildQueue } from "@/lib/build-jobs/worker";
 
 /**
  * Server action for the dashboard "New idea" form. Runs server-side under the
@@ -216,4 +218,34 @@ export async function getExperiments() {
   const id = demoIdentity();
   if (!id) return [];
   return listExperiments(id.userId, id.workspaceId);
+}
+
+/** Read build jobs for the demo workspace (server-side). */
+export async function getBuildJobs() {
+  const id = demoIdentity();
+  if (!id) return [];
+  return listBuildJobs(id.userId, id.workspaceId);
+}
+
+export interface RunWorkerResult {
+  ok: boolean;
+  processed?: number;
+  error?: string;
+}
+
+/**
+ * Demo control: run the build worker on demand instead of waiting for the cron.
+ * Claims queued build jobs, runs the agent runner, and stages build.record
+ * pending ops for approval. Lets you drive the whole loop from the browser.
+ */
+export async function runBuildWorker(_prev: RunWorkerResult, _formData: FormData): Promise<RunWorkerResult> {
+  const id = demoIdentity();
+  if (!id) return { ok: false, error: "Demo identity not configured." };
+  try {
+    const results = await processBuildQueue();
+    revalidatePath("/dashboard");
+    return { ok: true, processed: results.length };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Worker failed." };
+  }
 }
