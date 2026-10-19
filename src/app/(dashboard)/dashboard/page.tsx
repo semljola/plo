@@ -4,7 +4,8 @@ import { NewIdeaForm } from "./new-idea-form";
 import { DraftSpecForm } from "./draft-spec-form";
 import { MetricsPanel } from "./metrics-panel";
 import { PendingOpRow } from "./pending-op-row";
-import { getIdeas, getSpecs, getMetricDefinitions, getExperiments } from "./actions";
+import { BuildsSection } from "./builds-section";
+import { getIdeas, getSpecs, getMetricDefinitions, getExperiments, getBuildJobs } from "./actions";
 
 /**
  * Minimal metrics dashboard. Server component — reads directly through the
@@ -29,13 +30,14 @@ export default async function Dashboard() {
     );
   }
 
-  const [metrics, pending, ideas, specs, metricDefs, experiments] = await Promise.all([
+  const [metrics, pending, ideas, specs, metricDefs, experiments, buildJobs] = await Promise.all([
     dashboard(userId, workspaceId),
     list(userId, workspaceId, "pending"),
     getIdeas(),
     getSpecs(),
     getMetricDefinitions(),
     getExperiments(),
+    getBuildJobs(),
   ]);
 
   return (
@@ -72,6 +74,19 @@ export default async function Dashboard() {
         ))}
         {pending.length === 0 && <li style={{ color: "#9ca3af" }}>Nothing awaiting approval.</li>}
       </ul>
+
+      <h2 style={{ fontSize: 20, marginTop: 36 }}>Builds ({buildJobs.length})</h2>
+      <BuildsSection
+        jobs={buildJobs.map((j) => ({
+          id: j.id,
+          spec_id: j.spec_id,
+          spec_version: j.spec_version,
+          status: j.status,
+          git_sha: j.git_sha,
+          attempts: j.attempts,
+          error: j.error,
+        }))}
+      />
 
       <h2 style={{ fontSize: 20, marginTop: 36 }}>Specs ({specs.length})</h2>
       <DraftSpecForm ideas={ideas.map((i) => ({ id: i.id, title: i.title }))} />
